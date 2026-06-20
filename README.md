@@ -3,3 +3,5 @@ Please note this does not have live API key, please get a free API key from - ht
 
 This app features a dashboard to record and track your mood and journal your thoughts.  
 It also uses a chat bot with the latest `openai/gpt-oss-120b` model. 
+
+Project deployed at - https://mindbloom-hack2skill.netlify.app/
