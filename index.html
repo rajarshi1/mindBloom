@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindBloom • Mental Wellness Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        .chat-bubble-user { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+        .chat-bubble-ai { background: #1f2937; }
+        .mood-circle { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .journal-entry { transition: all 0.2s ease; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-lg sticky top-0 z-50">
+            <div class="px-8 py-5 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-2xl flex items-center justify-center">
+                        <i class="fa-solid fa-brain text-zinc-950 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight">MindBloom</h1>
+                        <p class="text-xs text-emerald-400 font-medium">Your AI Wellness Companion</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-6 text-sm">
+                    <nav class="flex gap-8">
+                        <a href="#" onclick="switchTab(0)" class="tab-link active flex items-center gap-2 text-emerald-400 font-medium">
+                            <i class="fa-solid fa-home"></i> Dashboard
+                        </a>
+                        <a href="#" onclick="switchTab(1)" class="tab-link flex items-center gap-2 hover:text-white transition-colors">
+                            <i class="fa-solid fa-book"></i> Journal
+                        </a>
+                        <a href="#" onclick="switchTab(2)" class="tab-link flex items-center gap-2 hover:text-white transition-colors">
+                            <i class="fa-solid fa-comments"></i> AI Chat
+                        </a>
+                        <a href="#" onclick="switchTab(3)" class="tab-link flex items-center gap-2 hover:text-white transition-colors">
+                            <i class="fa-solid fa-chart-line"></i> Insights
+                        </a>
+                    </nav>
+                    
+                    <div class="flex items-center gap-3">
+                        <button onclick="showApiKeyModal()" class="px-4 py-2 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex items-center gap-2 transition-colors">
+                            <i class="fa-solid fa-key"></i>
+                            <span id="api-status">API Config</span>
+                        </button>
+                        <button onclick="editPersona()" class="px-4 py-2 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-3xl flex items-center gap-2 transition-colors">
+                            <i class="fa-solid fa-user-pen"></i>
+                            <span id="persona-name-short">Profile</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex">
+            <!-- Sidebar -->
+            <div class="w-72 bg-zinc-900 border-r border-zinc-800 h-[calc(100vh-73px)] p-6 hidden lg:flex flex-col">
+                <div class="mb-8">
+                    <div class="text-xs uppercase tracking-widest text-zinc-500 mb-3">Today's Mood</div>
+                    <div id="today-mood" class="flex items-center gap-4"></div>
+                </div>
+
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="text-xs uppercase tracking-widest text-zinc-500">Streak</div>
+                        <div class="text-emerald-400 font-mono text-lg font-semibold" id="streak-count">0</div>
+                    </div>
+                    <div class="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                        <div id="streak-bar" class="h-full bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-full w-0"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="text-xs uppercase tracking-widest text-zinc-500 mb-4">Quick Mood Log</div>
+                    <div class="grid grid-cols-5 gap-2" id="quick-mood"></div>
+                </div>
+
+                <div class="mt-auto pt-8 border-t border-zinc-800">
+                    <div onclick="showTips()" class="cursor-pointer bg-zinc-800 hover:bg-zinc-700 p-4 rounded-3xl text-sm transition-all">
+                        <div class="flex gap-3 items-start">
+                            <i class="fa-solid fa-lightbulb text-amber-400 mt-0.5"></i>
+                            <div>
+                                <div class="font-medium">Daily Tip</div>
+                                <div class="text-zinc-400 text-xs leading-snug mt-1" id="daily-tip"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 p-8 overflow-auto" style="height: calc(100vh - 73px);">
+                <!-- Dashboard -->
+                <div id="tab-0" class="tab-content active">
+                    <div class="max-w-4xl mx-auto">
+                        <div class="flex justify-between items-end mb-8">
+                            <div>
+                                <h2 id="welcome-text" class="text-4xl font-semibold tracking-tight"></h2>
+                                <p id="exam-info" class="text-zinc-400 mt-2"></p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-5xl font-mono font-semibold text-emerald-400" id="wellness-score">75</div>
+                                <div class="text-xs text-zinc-500">WELLNESS SCORE</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                            <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-emerald-400 text-sm font-medium">Stress Level</div>
+                                        <div class="text-4xl font-semibold mt-2" id="stress-level">Moderate</div>
+                                    </div>
+                                    <div class="w-16 h-16">
+                                        <svg class="w-full h-full" viewBox="0 0 42 42">
+                                            <circle cx="21" cy="21" r="15" fill="none" stroke="#27272a" stroke-width="6"></circle>
+                                            <circle id="stress-circle" cx="21" cy="21" r="15" fill="none" stroke="#eab308" stroke-width="6" stroke-dasharray="94.2" stroke-dashoffset="40" stroke-linecap="round"></circle>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-cyan-400 text-sm font-medium">Sleep Quality</div>
+                                        <div class="text-4xl font-semibold mt-2" id="sleep-score">7.2h</div>
+                                    </div>
+                                    <i class="fa-solid fa-moon text-5xl text-indigo-400"></i>
+                                </div>
+                            </div>
+                            <div class="bg-zinc-900 rounded-3xl p-6 border border-zinc-800">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-rose-400 text-sm font-medium">Focus Time</div>
+                                        <div class="text-4xl font-semibold mt-2" id="focus-time">3h 45m</div>
+                                    </div>
+                                    <i class="fa-solid fa-brain text-5xl text-violet-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-12">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="font-semibold">Recent Entries</h3>
+                                <button onclick="switchTab(1)" class="text-xs flex items-center gap-1.5 text-emerald-400 hover:text-white">
+                                    View All <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="recent-entries"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Journal Tab -->
+                <div id="tab-1" class="tab-content">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="bg-zinc-900 rounded-3xl p-8">
+                            <h3 class="text-xl font-semibold mb-6 flex items-center gap-3">
+                                <i class="fa-solid fa-book-open"></i> Daily Reflection
+                            </h3>
+                            <textarea id="journal-input" rows="8" class="w-full bg-zinc-950 border border-zinc-700 focus:border-emerald-500 rounded-3xl p-6 text-lg resize-none outline-none" placeholder="How are you feeling today? What triggered your stress?..."></textarea>
+                            <button onclick="logMood()" class="mt-6 w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-3xl font-medium transition-colors">Log Entry + Mood</button>
+                        </div>
+                        <div class="mt-8">
+                            <h4 class="font-medium mb-4 text-zinc-400">Past Reflections</h4>
+                            <div id="past-entries" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Chat Tab -->
+                <div id="tab-2" class="tab-content flex flex-col h-full">
+                    <div class="flex-1 overflow-auto p-6 space-y-6" id="chat-container"></div>
+                    <div class="p-6 border-t border-zinc-800 bg-zinc-900">
+                        <div class="flex gap-3">
+                            <input id="chat-input" type="text" class="flex-1 bg-zinc-800 border border-zinc-700 focus:border-cyan-400 rounded-3xl px-6 py-4 outline-none text-lg" placeholder="Tell me how you're feeling...">
+                            <button onclick="sendMessage()" class="w-14 h-14 bg-gradient-to-br from-cyan-400 to-emerald-500 rounded-3xl flex items-center justify-center text-2xl hover:scale-105 active:scale-95 transition-all">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Tab -->
+                <div id="tab-3" class="tab-content">
+                    <div class="max-w-4xl mx-auto">
+                        <h2 class="text-3xl font-semibold mb-8">Your Patterns & Insights</h2>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div class="bg-zinc-900 rounded-3xl p-8">
+                                <h4 class="font-semibold mb-6">Emotional Trends (Last 14 days)</h4>
+                                <div class="h-64 flex items-end gap-2" id="mood-chart"></div>
+                            </div>
+                            <div class="bg-zinc-900 rounded-3xl p-8">
+                                <h4 class="font-semibold mb-4">AI Detected Triggers</h4>
+                                <div class="space-y-4" id="triggers-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persona Onboarding Modal -->
+    <div id="persona-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[300] hidden">
+        <div class="bg-zinc-900 rounded-3xl p-8 max-w-lg w-full mx-4 max-h-[90vh] overflow-auto">
+            <h3 class="text-2xl font-semibold mb-6 text-center">Welcome to MindBloom</h3>
+            <p class="text-zinc-400 text-center mb-8">Let's set up your profile</p>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-2">Your Name</label>
+                    <input id="persona-name" type="text" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500" placeholder="Your name">
+                </div>
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-2">Preparing for</label>
+                    <select id="persona-exam" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                        <option value="JEE">JEE</option>
+                        <option value="NEET">NEET</option>
+                        <option value="UPSC">UPSC</option>
+                        <option value="CUET">CUET</option>
+                        <option value="CAT">CAT</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-zinc-400 mb-2">Days until exam</label>
+                    <input id="persona-days" type="number" value="45" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-2">Current Streak (days)</label>
+                        <input id="persona-streak" type="number" value="5" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-2">Wellness Score (0-100)</label>
+                        <input id="persona-wellness" type="number" value="72" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-2">Sleep (hrs)</label>
+                        <input id="persona-sleep" type="number" step="0.1" value="7.2" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-2">Focus Time (hrs)</label>
+                        <input id="persona-focus" type="number" step="0.1" value="3.8" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-zinc-400 mb-2">Stress Level</label>
+                        <select id="persona-stress" class="w-full bg-zinc-950 border border-zinc-700 rounded-3xl px-6 py-4 outline-none focus:border-emerald-500">
+                            <option value="Low">Low</option>
+                            <option value="Moderate" selected>Moderate</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button onclick="savePersona()" class="mt-8 w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-3xl font-medium text-lg">Continue to Dashboard</button>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="api-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-[200]">
+        <div class="bg-zinc-900 rounded-3xl p-8 max-w-md w-full mx-4">
+            <h3 class="text-xl font-semibold mb-2">Groq API Key</h3>
+            <p class="text-zinc-400 text-sm mb-6">Stored securely in your browser (localStorage).</p>
+            <input type="password" id="api-key-input" class="w-full bg-zinc-950 border border-zinc-700 focus:border-emerald-500 rounded-3xl px-6 py-4 outline-none" placeholder="gsk_...">
+            <div class="flex gap-3 mt-6">
+                <button onclick="saveApiKey()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-4 rounded-3xl font-medium">Save Key</button>
+                <button onclick="closeApiModal()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 py-4 rounded-3xl font-medium">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 0;
+        let messages = [];
+        let journalEntries = [];
+        let currentMood = null;
+        let GROQ_API_KEY = localStorage.getItem('GROQ_API_KEY') || '';
+        let persona = {};
+
+        const moods = [
+            { emoji: "😢", label: "Sad" },
+            { emoji: "😟", label: "Anxious" },
+            { emoji: "😐", label: "Neutral" },
+            { emoji: "🙂", label: "Good" },
+            { emoji: "😊", label: "Great" }
+        ];
+
+        // Persona Management
+        function loadPersona() {
+            const saved = localStorage.getItem('mindguard_persona');
+            if (saved) {
+                persona = JSON.parse(saved);
+                updateUIWithPersona();
+            } else {
+                document.getElementById('persona-modal').classList.remove('hidden');
+            }
+        }
+
+        function savePersona() {
+            persona = {
+                name: document.getElementById('persona-name').value.trim() || "Student",
+                exam: document.getElementById('persona-exam').value,
+                daysLeft: parseInt(document.getElementById('persona-days').value) || 45,
+                streak: parseInt(document.getElementById('persona-streak').value) || 0,
+                wellnessScore: parseInt(document.getElementById('persona-wellness').value) || 75,
+                sleepHours: parseFloat(document.getElementById('persona-sleep').value) || 7.0,
+                focusHours: parseFloat(document.getElementById('persona-focus').value) || 4.0,
+                stressLevel: document.getElementById('persona-stress').value
+            };
+            localStorage.setItem('mindguard_persona', JSON.stringify(persona));
+            document.getElementById('persona-modal').classList.add('hidden');
+            updateUIWithPersona();
+        }
+
+        function updateUIWithPersona() {
+            document.getElementById('welcome-text').textContent = `Welcome back, ${persona.name} 👋`;
+            document.getElementById('exam-info').textContent = `Day ${Math.floor(Math.random()*20)+1} of ${persona.exam} prep • ${persona.daysLeft} days until exam`;
+            document.getElementById('persona-name-short').textContent = persona.name.split(' ')[0] || "Profile";
+
+            document.getElementById('streak-count').textContent = persona.streak || 0;
+            document.getElementById('wellness-score').textContent = persona.wellnessScore || 75;
+            document.getElementById('sleep-score').textContent = (persona.sleepHours || 7.0) + "h";
+            document.getElementById('focus-time').textContent = (persona.focusHours || 4.0) + "h";
+            document.getElementById('stress-level').textContent = persona.stressLevel || "Moderate";
+
+            // Update streak bar
+            const streakPercent = Math.min(((persona.streak || 0) / 30) * 100, 100);
+            document.getElementById('streak-bar').style.width = streakPercent + "%";
+        }
+
+        function editPersona() {
+            document.getElementById('persona-name').value = persona.name || '';
+            document.getElementById('persona-exam').value = persona.exam || 'JEE';
+            document.getElementById('persona-days').value = persona.daysLeft || 45;
+            document.getElementById('persona-streak').value = persona.streak || 5;
+            document.getElementById('persona-wellness').value = persona.wellnessScore || 75;
+            document.getElementById('persona-sleep').value = persona.sleepHours || 7.2;
+            document.getElementById('persona-focus').value = persona.focusHours || 3.8;
+            document.getElementById('persona-stress').value = persona.stressLevel || 'Moderate';
+            document.getElementById('persona-modal').classList.remove('hidden');
+        }
+
+        // API Key Management
+        function updateApiStatus() {
+            const el = document.getElementById('api-status');
+            el.innerHTML = GROQ_API_KEY ? `<span class="text-emerald-400">✓ API Ready</span>` : `<span class="text-amber-400">⚠ Set API Key</span>`;
+        }
+
+        function showApiKeyModal() {
+            document.getElementById('api-key-input').value = GROQ_API_KEY;
+            document.getElementById('api-modal').classList.remove('hidden');
+        }
+
+        function closeApiModal() {
+            document.getElementById('api-modal').classList.add('hidden');
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if (key) {
+                GROQ_API_KEY = key;
+                localStorage.setItem('GROQ_API_KEY', key);
+                updateApiStatus();
+                closeApiModal();
+                showToast("API Key saved successfully!");
+            } else {
+                alert("Please enter a valid Groq API key");
+            }
+        }
+
+        // Tab Navigation
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.querySelectorAll('.tab-link').forEach((link, i) => link.classList.toggle('active', i === tab));
+            if (tab === 3) renderInsights();
+        }
+
+        // Quick Moods
+        function renderQuickMoods() {
+            const container = document.getElementById('quick-mood');
+            container.innerHTML = moods.map((m, i) => `
+                <div onclick="selectQuickMood(${i})" class="mood-circle cursor-pointer text-3xl w-11 h-11 flex items-center justify-center hover:scale-125 transition-all rounded-2xl bg-zinc-800 hover:bg-zinc-700">
+                    ${m.emoji}
+                </div>
+            `).join('');
+        }
+
+        function selectQuickMood(i) {
+            currentMood = moods[i];
+            document.getElementById('today-mood').innerHTML = `<div class="text-5xl">${currentMood.emoji}</div><div><div class="font-semibold">${currentMood.label}</div><div class="text-xs text-zinc-400">Logged now</div></div>`;
+            showToast(`Mood logged: ${currentMood.label}`);
+        }
+
+        // Journal Functions
+        function logMood() {
+            const text = document.getElementById('journal-input').value.trim();
+            const entry = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }),
+                text: text || "Quick mood update",
+                mood: currentMood || moods[3],
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+            };
+            journalEntries.unshift(entry);
+            renderRecentEntries();
+            renderPastEntries();
+            document.getElementById('journal-input').value = '';
+            showToast("Entry saved! AI is analyzing...");
+        }
+
+        function renderRecentEntries() {
+            const container = document.getElementById('recent-entries');
+            container.innerHTML = journalEntries.slice(0, 4).map(e => `
+                <div class="journal-entry bg-zinc-900 border border-zinc-800 rounded-3xl p-5">
+                    <div class="flex justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="text-3xl">${e.mood.emoji}</span>
+                            <div><div class="text-sm font-medium">${e.date}</div><div class="text-xs text-zinc-500">${e.time}</div></div>
+                        </div>
+                        <div class="text-xs px-3 py-1 bg-zinc-800 rounded-3xl">${e.mood.label}</div>
+                    </div>
+                    <p class="mt-4 text-zinc-300 line-clamp-2">${e.text}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderPastEntries() {
+            const container = document.getElementById('past-entries');
+            container.innerHTML = journalEntries.map(e => `
+                <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+                    <div class="flex gap-4">
+                        <div class="text-4xl">${e.mood.emoji}</div>
+                        <div class="flex-1">
+                            <div class="flex justify-between"><div class="font-medium">${e.date} • ${e.time}</div><span class="text-xs bg-zinc-800 px-4 py-1 rounded-3xl">${e.mood.label}</span></div>
+                            <p class="mt-3 text-zinc-300">${e.text}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Chat Functions
+        function addMessage(content, role) {
+            if (!content || !['user', 'assistant'].includes(role)) return;
+            messages.push({ role, content });
+            const container = document.getElementById('chat-container');
+            const isUser = role === 'user';
+            container.innerHTML += `
+                <div class="flex ${isUser ? 'justify-end' : 'justify-start'} mb-6">
+                    <div class="${isUser ? 'chat-bubble-user' : 'chat-bubble-ai'} max-w-[80%] rounded-3xl px-6 py-4">
+                        ${content}
+                    </div>
+                </div>`;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (!GROQ_API_KEY) {
+                showToast("Please set your Groq API key first");
+                showApiKeyModal();
+                return;
+            }
+
+            addMessage(text, 'user');
+            input.value = '';
+
+            const typingId = addTypingIndicator();
+
+            try {
+                const validHistory = messages.filter(m => ['user', 'assistant'].includes(m.role));
+
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "openai/gpt-oss-120b",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "You are MindGuard, a warm, empathetic AI wellness companion for Indian students preparing for high-stakes exams. Speak like a supportive older sibling. Be concise, actionable and hopeful."
+                            },
+                            ...validHistory,
+                            { role: "user", content: text }
+                        ],
+                        temperature: 0.85,
+                        max_tokens: 700
+                    })
+                });
+
+                if (!response.ok) throw new Error("API request failed");
+
+                const data = await response.json();
+                removeTypingIndicator(typingId);
+
+                const reply = data.choices?.[0]?.message?.content || "I'm here for you.";
+                addMessage(reply, 'assistant');
+            } catch (err) {
+                console.error(err);
+                removeTypingIndicator(typingId);
+                addMessage("Sorry, I'm having trouble connecting. Please check your API key.", 'assistant');
+            }
+        }
+
+        function addTypingIndicator() {
+            const container = document.getElementById('chat-container');
+            const id = 'typing-' + Date.now();
+            container.innerHTML += `
+                <div id="${id}" class="flex justify-start mb-6">
+                    <div class="chat-bubble-ai max-w-[80%] rounded-3xl px-6 py-4 flex items-center gap-2">
+                        <div class="flex gap-1">
+                            <div class="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style="animation-delay:150ms"></div>
+                            <div class="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style="animation-delay:300ms"></div>
+                        </div>
+                    </div>
+                </div>`;
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // Insights
+        function renderInsights() {
+            const chart = document.getElementById('mood-chart');
+            const scores = [65,45,78,82,55,91,70,40,88,76,62,85,79,93];
+            let html = '';
+            scores.forEach((s,i) => {
+                html += `<div class="flex-1 flex flex-col justify-end items-center gap-1"><div style="height:${s}px;background:linear-gradient(to top,#10b981,#34d399)" class="w-full rounded-t"></div><div class="text-xs text-zinc-500">${i+1}</div></div>`;
+            });
+            chart.innerHTML = html;
+
+            document.getElementById('triggers-list').innerHTML = `
+                <div class="bg-zinc-800 rounded-2xl p-4"><div class="font-medium">Mock Test Anxiety</div><div class="text-xs text-red-400">Critical • 7 times</div></div>`;
+        }
+
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.style.cssText = `position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:16px 28px;border-radius:9999px;z-index:9999;`;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2800);
+        }
+
+        function showTips() {
+            const tips = ["Try 4-7-8 breathing when stressed.", "Write 3 things you're grateful for."];
+            document.getElementById('daily-tip').textContent = `"${tips[Math.floor(Math.random()*tips.length)]}"`;
+            showToast("New tip loaded ✨");
+        }
+
+        // Initialize
+        function init() {
+            loadPersona();
+            updateApiStatus();
+
+            journalEntries = persona.journalEntries || [
+                {id:1, date:"Jun 18", text:"Felt overwhelmed after mock test.", mood: moods[1], time:"09:14 PM"},
+                {id:2, date:"Jun 19", text:"Good progress in Chemistry.", mood: moods[3], time:"08:45 PM"}
+            ];
+
+            renderQuickMoods();
+            renderRecentEntries();
+            renderPastEntries();
+
+            setTimeout(() => {
+                if (messages.length === 0 && persona.name) {
+                    addMessage(`Hi ${persona.name.split(' ')[0]}! How are you feeling today?`, 'assistant');
+                }
+            }, 800);
+
+            document.getElementById('chat-input').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+
+            switchTab(0);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
